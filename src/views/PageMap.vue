@@ -19,7 +19,7 @@
           font-small()
           overflow visible
           width = 220px
-          height = 450px
+          height = 550px
           border 1px solid colorBg10
           border-radius borderRadiusL
           padding 10px
@@ -50,9 +50,15 @@
                 flex 1
                 text-align right
                 white-space nowrap
+              mark
+                color colorText5
+                margin-left 3px
+                background none
               img
                 width 20px
                 cursor pointer
+            .buttons-container
+              display flex
             .button-add
               button()
             .button-save
@@ -188,15 +194,15 @@
             <section class="stats">
               <header class="header">Статистика</header>
               <div class="one-item">
-                <div v-if="node.totalRpsGen">RPS gen: {{ Intl.NumberFormat().format(node.totalRpsGen) }}</div>
-                <div v-if="node.totalDpsGen">DPS gen: {{ Intl.NumberFormat().format(node.totalDpsGen) }}</div>
-                <div v-if="node.totalMemGen">MEM gen: {{ Intl.NumberFormat().format(node.totalMemGen) }}Tb</div>
-                <div v-if="node.totalRpsIn">RPS in: {{ Intl.NumberFormat().format(node.totalRpsIn) }}</div>
-                <div v-if="node.totalDpsIn">DPS in: {{ Intl.NumberFormat().format(node.totalDpsIn) }}</div>
-                <div v-if="node.totalMemIn">MEM in: {{ Intl.NumberFormat().format(node.totalMemIn) }}Tb</div>
-                <div v-if="node.totalRpsOut">RPS out: {{ Intl.NumberFormat().format(node.totalRpsOut) }}</div>
-                <div v-if="node.totalDpsOut">DPS out: {{ Intl.NumberFormat().format(node.totalDpsOut) }}</div>
-                <div v-if="node.totalMemOut">MEM out: {{ Intl.NumberFormat().format(node.totalMemOut) }}Tb</div>
+                <div v-if="node.totalRpsGen">RPS+: {{ Intl.NumberFormat().format(node.totalRpsGen) }}</div>
+                <div v-if="node.totalDpsGen">DPS+: {{ Intl.NumberFormat().format(node.totalDpsGen) }}<mark>Mb/S</mark></div>
+                <div v-if="node.totalMemGen">MEM+: {{ Intl.NumberFormat().format(node.totalMemGen) }}<mark>Tb</mark></div>
+                <div v-if="node.totalRpsIn">RPS →: {{ Intl.NumberFormat().format(node.totalRpsIn) }}</div>
+                <div v-if="node.totalDpsIn">DPS →: {{ Intl.NumberFormat().format(node.totalDpsIn) }}<mark>Mb/S</mark></div>
+                <div v-if="node.totalMemIn">MEM →: {{ Intl.NumberFormat().format(node.totalMemIn) }}<mark>Tb</mark></div>
+                <div v-if="node.totalRpsOut">← RPS: {{ Intl.NumberFormat().format(node.totalRpsOut) }}</div>
+                <div v-if="node.totalDpsOut">← DPS: {{ Intl.NumberFormat().format(node.totalDpsOut) }}<mark>Mb/S</mark></div>
+                <div v-if="node.totalMemOut">← MEM: {{ Intl.NumberFormat().format(node.totalMemOut) }}<mark>Tb</mark></div>
               </div>
             </section>
 
@@ -206,8 +212,10 @@
               <button v-if="!node.addServiceInProcess" class="button-add" @click="node.addServiceInProcess = true"><img src="/res/icons/plus.svg" alt="plus">добавить сервис</button>
               <div v-if="node.addServiceInProcess">
                 <DropdownList :list="ServicesConfigs" v-model="node.selectedServiceConfig" @input="(idx, el) => node.selectedServiceConfig = el"></DropdownList>
-                <button class="button-save" @click="addServiceToNode(node, node.selectedServiceConfig); node.addServiceInProcess = false"><img src="/res/icons/save.svg" alt="plus">сохранить</button>
-                <button class="button-cancel" @click="node.addServiceInProcess = false"><img src="/res/icons/cross.svg" alt="cross">отменить</button>
+                <div class="buttons-container">
+                  <button class="button-cancel" @click="node.addServiceInProcess = false"><img src="/res/icons/cross.svg" alt="cross">отменить</button>
+                  <button class="button-save" @click="addServiceToNode(node, node.selectedServiceConfig); node.addServiceInProcess = false"><img src="/res/icons/save.svg" alt="plus">сохранить</button>
+                </div>
               </div>
             </section>
 
@@ -217,8 +225,10 @@
               <button v-if="!node.addLinkInProcess" class="button-add" @click="node.addLinkInProcess = true"><img src="/res/icons/plus.svg" alt="plus">добавить связь</button>
               <div v-if="node.addLinkInProcess">
                 <DropdownList :list="Object.values(nodes)" v-model="node.selectedLinkTarget" @input="(idx, el) => node.selectedLinkTarget = el"></DropdownList>
-                <button class="button-save" @click="addLinkToNode(node, node.selectedLinkTarget); node.addLinkInProcess = false"><img src="/res/icons/save.svg" alt="plus">сохранить</button>
-                <button class="button-cancel" @click="node.addLinkInProcess = false"><img src="/res/icons/cross.svg" alt="cross">отменить</button>
+                <div class="buttons-container">
+                  <button class="button-cancel" @click="node.addLinkInProcess = false"><img src="/res/icons/cross.svg" alt="cross">отменить</button>
+                  <button class="button-save" @click="addLinkToNode(node, node.selectedLinkTarget); node.addLinkInProcess = false"><img src="/res/icons/save.svg" alt="plus">сохранить</button>
+                </div>
               </div>
             </section>
           </foreignObject>
@@ -417,9 +427,9 @@ export default {
           node.totalDpsIn = totalDpsIn;
           node.totalRpsIn = totalRpsIn;
           node.totalMemIn = totalMemIn;
-          node.totalDpsOut = (totalDpsIn + outDpsAdding) * outDpsCoefficient;
-          node.totalRpsOut = (totalRpsIn + outRpsAdding) * outRpsCoefficient;
-          node.totalMemOut = (totalMemIn + outMemAdding) * outMemCoefficient;
+          node.totalDpsOut = Math.max(0, (totalDpsIn + outDpsAdding) * outDpsCoefficient);
+          node.totalRpsOut = Math.max(0, (totalRpsIn + outRpsAdding) * outRpsCoefficient);
+          node.totalMemOut = Math.max(0, (totalMemIn + outMemAdding) * outMemCoefficient);
         });
       }
 
