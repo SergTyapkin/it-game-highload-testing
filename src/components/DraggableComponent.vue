@@ -142,6 +142,7 @@ export default {
       _dragCurrentDeltaY: 0,
       _savedDragOffsetX: undefined,
       _savedDragOffsetY: undefined,
+      _savedDistanceBetweenFingers: undefined,
 
       scaleTimeoutObject: undefined,
 
@@ -260,6 +261,7 @@ export default {
     },
     onMouseupOther(e) {
       // console.log("CLICK OTHER", e.target, this.$el)
+      this._savedDistanceBetweenFingers = undefined;
       this.isInDrag = false;
       if (this._dragCurrentDeltaX === 0 && this._dragCurrentDeltaY === 0) {
         return;
@@ -279,6 +281,14 @@ export default {
         return;
       }
       this.addOffsetsToTouchEvent(e);
+      if (e.changedTouches && e.changedTouches.length >= 2) { // is mobile and 2-fingers
+        const dist = (x1,y1, x2,y2) => Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+        const curDist = dist(e.changedTouches[0].pageX, e.changedTouches[0].pageY, e.changedTouches[1].pageX, e.changedTouches[1].pageY);
+        if (this._savedDistanceBetweenFingers) {
+          this.scaleByDelta((curDist - this._savedDistanceBetweenFingers) / 1000, e.onElementX, e.onElementY);
+        }
+        this._savedDistanceBetweenFingers = curDist;
+      }
 
       let deltaX = e.pageX - this._dragStartPageX;
       let deltaY = e.pageY - this._dragStartPageY;
@@ -300,7 +310,9 @@ export default {
       this.addOffsetsToTouchEvent(e);
       const scrollValue = e.deltaY;
       let scaleDelta = -1 * scrollValue * SCALE_SENSITIVITY * this.sensitivityMultiplier;
-
+      this.scaleByDelta(scaleDelta, e.onElementX, e.onElementY);
+    },
+    scaleByDelta(scaleDelta, x, y) {
       if (this.scale + scaleDelta > this.maxScaleComputed) {
         scaleDelta = this.maxScaleComputed - this.scale;
       }
@@ -311,10 +323,10 @@ export default {
       let compensatingX = 0;
       let compensatingY = 0;
       if (this.movableX && this.scalableX) {
-        compensatingX = -(e.onElementX - this.totalOffsetX) / this.scale * scaleDelta;
+        compensatingX = -(x - this.totalOffsetX) / this.scale * scaleDelta;
       }
       if (this.movableY && this.scalableY) {
-        compensatingY = -(e.onElementY - this.totalOffsetY) / this.scale * scaleDelta;
+        compensatingY = -(y - this.totalOffsetY) / this.scale * scaleDelta;
       }
       this.scale += scaleDelta;
       const {x: allowedDeltaX, y: allowedDeltaY} = this.isCanMoveBy(compensatingX, compensatingY);
