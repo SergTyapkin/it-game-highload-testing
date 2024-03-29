@@ -9,7 +9,7 @@
     "dev": "vite --open",
     "dev host": "vite --open --host --port 443",
     "preview": "vite preview --open --host --port 443",
-    "dist": "vite build --out-dir dist"
+    "dist": "vite build --out-dir docs"
   },
   "dependencies": {
     "@sergtyapkin/image-uploader": "^1.0.0",
