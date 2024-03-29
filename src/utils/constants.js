@@ -57,6 +57,7 @@ export const ServicesConfigs = [
     name: 'Бэкенд с раздачей фронта',
     cost: 10000,
     dps: +300,
+    rps: 100,
     type: ServicesTypes.backWithFront,
   },
 ]

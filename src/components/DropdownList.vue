@@ -133,7 +133,7 @@ field()
 <template>
   <div class="select-root" ref="root" :class="{unrolled}" :readonly="readonly" :style="{'--overflow-y-length': overflowYLength + 'px'}">
     <span class="error-text">{{ error }}</span>
-    <div class="selected-item" @click="toggleOpen">
+    <div class="selected-item" @click.stop="toggleOpen">
       {{ list[selectedIdx]?.name }}
       <img src="/res/icons/arrow_corner_right.svg" alt="arrow">
     </div>
@@ -210,17 +210,20 @@ export default {
       this.selectedIdx = idx;
 
       this.$emit('update:modelValue', this.list[idx]);
-      this.setClose();
 
-      if (!disableEmitting)
+      if (!disableEmitting) {
+        this.setClose();
         this.$emit('input', idx, this.list[idx]);
+      }
     },
 
     toggleOpen() {
       if (!this.unrolled) { // opening list
         this.setOpen();
+        console.log('OPEN')
       } else { // closeList
         this.setClose();
+        console.log("CLOSE")
       }
     },
 
@@ -228,12 +231,12 @@ export default {
       const bottomY = this.$refs.root.getBoundingClientRect().top + INITIAL_HEIGHT + Math.min(ITEM_HEIGHT * this.list.length, MAX_LIST_HEIGHT);
       const maxHeight = /*HEADER_HEIGHT()*/ + document.documentElement.scrollHeight;
       this.overflowYLength = Math.min(maxHeight - bottomY, 0);
-      console.log(bottomY, maxHeight, this.overflowYLength)
       this.unrolled = true;
     },
     setClose() {
       this.overflowYLength = 0;
       this.unrolled = false;
+      console.log("CLOOOOOSE")
     },
   },
 

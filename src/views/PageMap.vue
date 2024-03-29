@@ -14,6 +14,18 @@
       width 2000px
       height 2000px
       background colorBg2
+      .main-info
+        border 1px solid colorBg10
+        border-radius borderRadiusL
+        padding 10px
+        overflow visible
+        font-small()
+        .header
+          text-align center
+          font-medium()
+          margin-bottom 3px
+        .button-submit
+          button()
       .node-container
         .node
           font-small()
@@ -71,6 +83,8 @@
               align-items flex-start
               font-small-x()
               font-family monospace
+              .warning
+                color colorError
           .background-rps
           .background-dps
           .background-mem
@@ -139,6 +153,18 @@
     >
       <svg class="map" ref="map" :width="1" :height="1">
 <!--        <rect @click="updateNodes" x="45%" y="5%" width="10%" height="5%" fill="red"></rect>-->
+        <foreignObject x="40%" y="2%" width="20%" height="5%" class="main-info">
+          <header class="header">Общая информация</header>
+          <div class="info">На счету: {{Intl.NumberFormat().format(Math.ceil(totalMoney))}} $</div>
+          <div class="info">Всего: {{Intl.NumberFormat().format(totalRequestsIn)}} RPS</div>
+          <div class="info">Отрабатывает: {{Intl.NumberFormat().format(totalPercentOut * 100)}}% запросов
+            = {{Intl.NumberFormat().format(totalRequestsIn * totalPercentOut)}} RPS
+            = {{Intl.NumberFormat().format(totalRequestsIn * totalPercentOut / 100 * MONEY_PER_100RPS)}} $/sec
+          </div>
+        </foreignObject>
+        <foreignObject x="40%" y="7%" width="20%" height="0" class="main-info">
+          <button class="button-submit" @click="withdrawMoney">Зачислить на счет<img src="/res/icons/exchange.svg" alt="money"></button>
+        </foreignObject>
 
         <g v-for="node in nodes" class="links-container">
           <g class="links">
@@ -176,13 +202,13 @@
                          :class="{
                            'rps-gen': node.totalRpsGen > 0,
                            'rps-out': node.totalRpsOut > node.totalRpsGen,
-                           'rps-in': node.totalRpsIn > 0 && node.totalRpsOut <= 0,
+                           'rps-in': (node.totalRpsIn + node.totalRpsGen) > 0 && node.totalRpsOut <= 0,
                            'dps-gen': node.totalDpsGen > 0,
                            'dps-out': node.totalDpsOut > node.totalDpsGen,
-                           'dps-in': node.totalDpsIn > 0 && node.totalDpsOut <= 0,
+                           'dps-in': (node.totalDpsIn + node.totalDpsGen) > 0 && node.totalDpsOut <= 0,
                            'mem-gen': node.totalMemGen > 0,
                            'mem-out': node.totalMemOut > node.totalMemGen,
-                           'mem-in': node.totalMemIn > 0 && node.totalMemOut <= 0,
+                           'mem-in': (node.totalMemIn + node.totalMemGen) > 0 && node.totalMemOut <= 0,
                          }"
           >
             <div class="background-rps"></div>
@@ -194,15 +220,16 @@
             <section class="stats">
               <header class="header">Статистика</header>
               <div class="one-item">
-                <div v-if="node.totalRpsGen">RPS+: {{ Intl.NumberFormat().format(node.totalRpsGen) }}</div>
-                <div v-if="node.totalDpsGen">DPS+: {{ Intl.NumberFormat().format(node.totalDpsGen) }}<mark>Mb/S</mark></div>
-                <div v-if="node.totalMemGen">MEM+: {{ Intl.NumberFormat().format(node.totalMemGen) }}<mark>Tb</mark></div>
+                <div v-if="node.totalRpsGen">RPS+ : {{ Intl.NumberFormat().format(node.totalRpsGen) }}</div>
+                <div v-if="node.totalDpsGen">DPS+ : {{ Intl.NumberFormat().format(node.totalDpsGen) }}<mark>Mb/S</mark></div>
+                <div v-if="node.totalMemGen">MEM+ : {{ Intl.NumberFormat().format(node.totalMemGen) }}<mark>Tb</mark></div>
                 <div v-if="node.totalRpsIn">RPS →: {{ Intl.NumberFormat().format(node.totalRpsIn) }}</div>
                 <div v-if="node.totalDpsIn">DPS →: {{ Intl.NumberFormat().format(node.totalDpsIn) }}<mark>Mb/S</mark></div>
                 <div v-if="node.totalMemIn">MEM →: {{ Intl.NumberFormat().format(node.totalMemIn) }}<mark>Tb</mark></div>
-                <div v-if="node.totalRpsOut">← RPS: {{ Intl.NumberFormat().format(node.totalRpsOut) }}</div>
-                <div v-if="node.totalDpsOut">← DPS: {{ Intl.NumberFormat().format(node.totalDpsOut) }}<mark>Mb/S</mark></div>
-                <div v-if="node.totalMemOut">← MEM: {{ Intl.NumberFormat().format(node.totalMemOut) }}<mark>Tb</mark></div>
+                <div v-if="node.totalRpsOut" :class="{'warning': node.isEnding && node.totalRpsOut > 0}">← RPS: {{ Intl.NumberFormat().format(node.totalRpsOut) }}</div>
+                <div v-if="node.totalDpsOut" :class="{'warning': node.isEnding && node.totalDpsOut > 0}">← DPS: {{ Intl.NumberFormat().format(node.totalDpsOut) }}<mark>Mb/S</mark></div>
+                <div v-if="node.totalMemOut" :class="{'warning': node.isEnding && node.totalMemOut > 0}">← MEM: {{ Intl.NumberFormat().format(node.totalMemOut) }}<mark>Tb</mark></div>
+                <div>Total: {{ Intl.NumberFormat().format(node.usersPercentOut * 100) }}<mark>%</mark></div>
               </div>
             </section>
 
@@ -250,6 +277,10 @@ const MAP_WIDTH = 2000;
 const MAP_HEIGHT = 2000;
 
 const LOCALSTORAGE_NODES_NAME = 'nodes-data';
+const LOCALSTORAGE_MONEY_NAME = 'total-money';
+
+const MONEY_PER_100RPS = 10;
+const MONEY_TIME_INTERVAL = 1000;
 
 export default {
   components: {DropdownList, DraggableComponent},
@@ -257,15 +288,17 @@ export default {
   data() {
     return {
       nodes: [],
-      minX: undefined,
-      minY: undefined,
-      maxX: undefined,
-      maxY: undefined,
+      totalPercentOut: undefined,
+      totalRequestsIn: undefined,
+      totalMoney: undefined,
+      moneyUpdatingInterval: undefined,
 
       loading: false,
 
       MAP_WIDTH,
       MAP_HEIGHT,
+      MONEY_PER_100RPS,
+      MONEY_TIME_INTERVAL,
       ServicesTypes,
       ServicesConfigs,
     }
@@ -273,10 +306,42 @@ export default {
 
   async mounted() {
     await this.loadNodes();
+    await this.loadMoney();
     this.updateNodes();
+    this.moneyUpdatingInterval = setInterval(this.increaseMoney, MONEY_TIME_INTERVAL);
+  },
+  unmounted() {
+    clearInterval(this.moneyUpdatingInterval);
   },
 
   methods: {
+    increaseMoney() {
+      this.totalMoney += this.totalRequestsIn * this.totalPercentOut / 100 * MONEY_PER_100RPS;
+      this.saveMoney();
+    },
+    async withdrawMoney() {
+      if (!await this.$modal.confirm(`Зачислите ${this.totalMoney} $`, 'Зачислите эту сумму на счет команды. Здесь счет будет обнулен')) {
+        return;
+      }
+      this.totalMoney = 0;
+      this.saveMoney();
+    },
+    saveMoney() {
+      localStorage.setItem(LOCALSTORAGE_MONEY_NAME, this.totalMoney);
+    },
+
+    async loadMoney() {
+      const loadedMoney = localStorage.getItem(LOCALSTORAGE_MONEY_NAME);
+      if (loadedMoney) {
+        try {
+          this.totalMoney = Number(loadedMoney) | 0;
+          return;
+        } catch (err) {
+          this.$popups.error(`Ошибка ${err}`, 'Не удалось загрузить сохраненные данные сцены');
+        }
+      }
+      this.totalMoney = 0;
+    },
     async loadNodes() {
       const loadedNodes = localStorage.getItem(LOCALSTORAGE_NODES_NAME);
       if (loadedNodes) {
@@ -351,29 +416,6 @@ export default {
 
       // Calculate gen stats by nodes
       this.nodes.forEach(node => {
-        let totalDpsGen = 0;
-        let totalRpsGen = 0;
-        let totalMemGen = 0;
-        node.services.forEach(service => {
-          switch (String(service.type)) {
-            case ServicesTypes.CDN:
-              totalDpsGen += service.dps;
-              totalRpsGen += service.rps;
-              break;
-            case ServicesTypes.backend:
-              totalDpsGen += service.dps;
-              break;
-            case ServicesTypes.database:
-              totalMemGen += service.mem;
-              break;
-            case ServicesTypes.monitoring:
-              totalMemGen += service.mem;
-              break;
-          }
-        });
-        node.totalDpsGen = totalDpsGen;
-        node.totalRpsGen = totalRpsGen;
-        node.totalMemGen = totalMemGen;
         node.totalDpsOut = 0;
         node.totalDpsIn = 0;
         node.totalRpsOut = 0;
@@ -388,27 +430,48 @@ export default {
           let totalDpsIn = 0;
           let totalRpsIn = 0;
           let totalMemIn = 0;
+          let totalUserPercentIn = 1;
           const allLinks = this.getAllNodeLinks(node);
           this.nodes.forEach(otherNode => {
             if (allLinks.includes(+otherNode.id)) {
-              totalDpsIn += otherNode.totalDpsGen + otherNode.totalDpsOut;
-              totalRpsIn += otherNode.totalRpsGen + otherNode.totalRpsOut;
-              totalMemIn += otherNode.totalMemGen + otherNode.totalMemOut;
+              totalDpsIn += Math.max(0, otherNode.totalDpsOut);
+              totalRpsIn += Math.max(0, otherNode.totalRpsOut);
+              totalMemIn += Math.max(0, otherNode.totalMemOut);
+              totalUserPercentIn = Math.min(totalUserPercentIn, otherNode.usersPercentOut);
             }
           });
+          let totalDpsGen = 0;
+          let totalRpsGen = 0;
+          let totalMemGen = 0;
           let outDpsCoefficient = 1;
           let outRpsCoefficient = 1;
           let outMemCoefficient = 1;
           let outDpsAdding = 0;
           let outRpsAdding = 0;
           let outMemAdding = 0;
+          let selfPercent = Infinity;
           // Calculate out stats on nodes
           node.services.forEach(service => {
             switch (String(service.type)) {
+              case ServicesTypes.CDN:
+                totalDpsGen += service.dps;
+                totalRpsGen += service.rps;
+                outDpsAdding += service.dps;
+                outRpsAdding += service.rps;
+                node.usersPercentOut = 1;
+                break;
               case ServicesTypes.backend:
+                totalDpsGen += service.dps;
+                outDpsAdding += service.dps;
                 outRpsAdding += service.rps;
                 break;
+              case ServicesTypes.monitoring:
+                totalMemGen += service.mem;
+                outMemAdding += service.mem;
+                break;
               case ServicesTypes.database:
+                totalMemGen += service.mem;
+                outMemAdding += service.mem;
                 outDpsAdding += service.dps;
                 break;
               case ServicesTypes.balancer:
@@ -420,22 +483,74 @@ export default {
                 outMemAdding += service.mem;
                 break;
               case ServicesTypes.backWithFront:
+                totalRpsGen += service.rps;
+                totalDpsGen += service.dps;
                 outDpsAdding += service.dps;
+                break;
+            }
+          });
+          node.totalDpsGen = Math.max(0, totalDpsGen);
+          node.totalRpsGen = Math.max(0, totalRpsGen);
+          node.totalMemGen = Math.max(0, totalMemGen);
+
+          node.services.forEach(service => {
+            switch (String(service.type)) {
+              case ServicesTypes.backend:
+                selfPercent = Math.min(selfPercent, Math.abs(outRpsAdding) / totalRpsIn);
+                break;
+              case ServicesTypes.database:
+                selfPercent = Math.min(selfPercent, Math.abs(outDpsAdding) / totalDpsIn);
+                break;
+              case ServicesTypes.diskStorage:
+                selfPercent = Math.min(selfPercent, Math.abs(outMemAdding) / totalMemIn);
                 break;
             }
           });
           node.totalDpsIn = totalDpsIn;
           node.totalRpsIn = totalRpsIn;
           node.totalMemIn = totalMemIn;
-          node.totalDpsOut = Math.max(0, (totalDpsIn + outDpsAdding) * outDpsCoefficient);
-          node.totalRpsOut = Math.max(0, (totalRpsIn + outRpsAdding) * outRpsCoefficient);
-          node.totalMemOut = Math.max(0, (totalMemIn + outMemAdding) * outMemCoefficient);
+          node.totalDpsOut = (totalDpsIn + outDpsAdding) * outDpsCoefficient;
+          node.totalRpsOut = (totalRpsIn + outRpsAdding) * outRpsCoefficient;
+          node.totalMemOut = (totalMemIn + outMemAdding) * outMemCoefficient;
+          node.usersPercentOut = totalUserPercentIn * Math.min(selfPercent, 1);
         });
       }
 
       this.nodes.forEach(() => {
         iterateInOutCalcByAllNodes();
       });
+
+      // Calculate final percents
+      let totalDpsGen = 0;
+      let totalRpsGen = 0;
+      let totalMemGen = 0;
+      let totalDpsLoss = 0;
+      let totalRpsLoss = 0;
+      let totalMemLoss = 0;
+      let minPercent = 1;
+      this.nodes.forEach((node) => {
+        totalDpsGen += node.totalDpsGen;
+        totalRpsGen += node.totalRpsGen;
+        totalMemGen += node.totalMemGen;
+
+        if (!node.linkedTo?.length) { // Ending nodes
+          node.isEnding = true;
+          totalDpsLoss += Math.max(0, node.totalDpsOut);
+          totalRpsLoss += Math.max(0, node.totalRpsOut);
+          totalMemLoss += Math.max(0, node.totalMemOut);
+        }
+
+        minPercent = Math.min(minPercent, node.usersPercentOut);
+      });
+      const globalPercent = 1 - Math.max(0,
+        (totalDpsLoss / totalDpsGen) | 0,
+        (totalRpsLoss / totalRpsGen) | 0,
+        (totalMemLoss / totalMemGen) | 0);
+      console.log(totalDpsLoss , totalDpsGen,
+      totalRpsLoss , totalRpsGen,
+        totalMemLoss , totalMemGen)
+      this.totalPercentOut = globalPercent * minPercent;
+      this.totalRequestsIn = totalRpsGen;
     }
   },
 }
