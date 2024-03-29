@@ -27,7 +27,7 @@ export const ServicesConfigs = [
   {
     id: 3,
     name: 'Дисковое хранилище',
-    mem: -10,
+    mem: -14,
     cost: 20000,
     type: ServicesTypes.diskStorage,
   },
