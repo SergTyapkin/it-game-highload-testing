@@ -1,11 +1,16 @@
 export const ServiceModel = {
   id: Number,
   name: String,
+  type: Object,
   rps: {
     type: Number,
     optional: true,
   },
   dps: {
+    type: Number,
+    optional: true,
+  },
+  mem: {
     type: Number,
     optional: true,
   },

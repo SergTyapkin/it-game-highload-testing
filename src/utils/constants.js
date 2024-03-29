@@ -1,49 +1,79 @@
 export const ServicesTypes = {
-  backend: {
+  backend: 'backend',
+  database: 'database',
+  diskStorage: 'diskStorage',
+  balancer: 'balancer',
+  CDN: 'CDN',
+  monitoring: 'monitoring',
+  backWithFront: 'backWithFront',
+}
+export const ServicesConfigs = [
+  {
     id: 1,
     name: 'Бэкенд',
-    rps: 300,
-    cost: 20,
+    rps: -300,
+    dps: +500,
+    cost: 15000,
+    type: ServicesTypes.backend,
   },
-  database: {
+  {
     id: 2,
     name: 'База данных',
-    rps: 600,
-    dps: 600,
-    cost: 20,
+    dps: -1200,
+    mem: +8,
+    cost: 15000,
+    type: ServicesTypes.database,
   },
-  diskStorage: {
+  {
     id: 3,
     name: 'Дисковое хранилище',
-    dps: 2000,
-    cost: 10
+    mem: -10,
+    cost: 20000,
+    type: ServicesTypes.diskStorage,
   },
-  balancer: {
+  {
     id: 4,
-    name: 'Балансировшик',
-    rps: 2000,
-    dps: 20,
-    cost: 1,
+    name: 'Балансировщик',
+    cost: 10000,
+    type: ServicesTypes.balancer,
   },
-  CDN: {
+  {
     id: 5,
     name: 'CDN',
-    radius: 10,
-    cost: 5,
+    rps: +400,
+    dps: +200,
+    cost: 5000,
+    type: ServicesTypes.CDN,
   },
-}
+  {
+    id: 6,
+    name: 'Мониторинг',
+    cost: 2000,
+    mem: +1,
+    type: ServicesTypes.monitoring,
+  },
+  {
+    id: 7,
+    name: 'Бэкенд с раздачей фронта',
+    cost: 10000,
+    dps: +300,
+    type: ServicesTypes.backWithFront,
+  },
+]
 
 export const CableTypes = {
   ethernet: {
     name: 'Витая пара',
     dps: 1000,
+    cost: 5000,
   },
   opticalFiber: {
     name: 'Оптоволокно',
     dps: 10000,
+    cost: 20000,
   },
 }
-export const nodesConfig = {
+export const defaultNodesConfig = {
   nodes: [
     {
       id: 1,

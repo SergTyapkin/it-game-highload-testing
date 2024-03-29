@@ -148,7 +148,6 @@ field()
 const INITIAL_HEIGHT = 50;
 const ITEM_HEIGHT = 40;
 const MAX_LIST_HEIGHT = 200;
-const BOTTOM_MARGIN = 10;
 
 export default {
   emits: ['input', 'update:modelValue'],
@@ -207,7 +206,6 @@ export default {
     },
 
     selectItem(idx, disableEmitting = false) {
-      console.log("SELECT:", idx, disableEmitting);
       this.state = this.States.default;
       this.selectedIdx = idx;
 
@@ -227,9 +225,10 @@ export default {
     },
 
     setOpen() {
-      // const bottomY = this.$refs.root.offsetTop + INITIAL_HEIGHT + Math.min(ITEM_HEIGHT * this.list.length, MAX_LIST_HEIGHT);
-      // const maxHeight = /*HEADER_HEIGHT()*/ + document.querySelector('.main').scrollHeight;
-      // this.overflowYLength = Math.min(maxHeight - bottomY - BOTTOM_MARGIN, 0);
+      const bottomY = this.$refs.root.getBoundingClientRect().top + INITIAL_HEIGHT + Math.min(ITEM_HEIGHT * this.list.length, MAX_LIST_HEIGHT);
+      const maxHeight = /*HEADER_HEIGHT()*/ + document.documentElement.scrollHeight;
+      this.overflowYLength = Math.min(maxHeight - bottomY, 0);
+      console.log(bottomY, maxHeight, this.overflowYLength)
       this.unrolled = true;
     },
     setClose() {

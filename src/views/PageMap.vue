@@ -27,10 +27,12 @@
           width width
           height height
           transform translate(- width / 2, - height / 2)
+          position relative
           .name
             text-align center
             font-large()
             margin-bottom 10px
+          .stats
           .services
           .links
             margin-bottom 20px
@@ -44,6 +46,10 @@
               display flex
               justify-content space-between
               align-items center
+              .cost
+                flex 1
+                text-align right
+                white-space nowrap
               img
                 width 20px
                 cursor pointer
@@ -53,6 +59,44 @@
               button-success()
             .button-cancel
               button-danger()
+          .stats
+            .one-item
+              flex-direction column
+              align-items flex-start
+              font-small-x()
+              font-family monospace
+          .background-rps
+          .background-dps
+          .background-mem
+            position absolute
+            opacity 10%
+            inset 0
+            height 33%
+            z-index -1
+          .background-rps
+            top 0
+          .background-dps
+            top 33%
+          .background-mem
+            top 66%
+          &.rps-gen .background-rps
+              background colorAlert
+          &.rps-out .background-rps
+              background colorError
+          &.rps-in .background-rps
+              background colorSuccess
+          &.dps-gen .background-dps
+              background colorAlert
+          &.dps-out .background-dps
+              background colorError
+          &.dps-in .background-dps
+              background colorSuccess
+          &.mem-gen .background-mem
+              background colorAlert
+          &.mem-out .background-mem
+              background colorError
+          &.mem-in .background-mem
+              background colorSuccess
       .links-container
         .links
           .link-start
@@ -88,6 +132,8 @@
                         @click-clean="onClick"
     >
       <svg class="map" ref="map" :width="1" :height="1">
+<!--        <rect @click="updateNodes" x="45%" y="5%" width="10%" height="5%" fill="red"></rect>-->
+
         <g v-for="node in nodes" class="links-container">
           <g class="links">
             <line v-for="linkId in node.linkedTo"
@@ -121,16 +167,46 @@
                            '--x': `${node.location.x}%`,
                            '--y': `${node.location.y}%`,
                          }"
+                         :class="{
+                           'rps-gen': node.totalRpsGen > 0,
+                           'rps-out': node.totalRpsOut > node.totalRpsGen,
+                           'rps-in': node.totalRpsIn > 0 && node.totalRpsOut <= 0,
+                           'dps-gen': node.totalDpsGen > 0,
+                           'dps-out': node.totalDpsOut > node.totalDpsGen,
+                           'dps-in': node.totalDpsIn > 0 && node.totalDpsOut <= 0,
+                           'mem-gen': node.totalMemGen > 0,
+                           'mem-out': node.totalMemOut > node.totalMemGen,
+                           'mem-in': node.totalMemIn > 0 && node.totalMemOut <= 0,
+                         }"
           >
+            <div class="background-rps"></div>
+            <div class="background-dps"></div>
+            <div class="background-mem"></div>
+
             <header class="name">{{ node.name }}</header>
+
+            <section class="stats">
+              <header class="header">Статистика</header>
+              <div class="one-item">
+                <div v-if="node.totalRpsGen">RPS gen: {{ Intl.NumberFormat().format(node.totalRpsGen) }}</div>
+                <div v-if="node.totalDpsGen">DPS gen: {{ Intl.NumberFormat().format(node.totalDpsGen) }}</div>
+                <div v-if="node.totalMemGen">MEM gen: {{ Intl.NumberFormat().format(node.totalMemGen) }}Tb</div>
+                <div v-if="node.totalRpsIn">RPS in: {{ Intl.NumberFormat().format(node.totalRpsIn) }}</div>
+                <div v-if="node.totalDpsIn">DPS in: {{ Intl.NumberFormat().format(node.totalDpsIn) }}</div>
+                <div v-if="node.totalMemIn">MEM in: {{ Intl.NumberFormat().format(node.totalMemIn) }}Tb</div>
+                <div v-if="node.totalRpsOut">RPS out: {{ Intl.NumberFormat().format(node.totalRpsOut) }}</div>
+                <div v-if="node.totalDpsOut">DPS out: {{ Intl.NumberFormat().format(node.totalDpsOut) }}</div>
+                <div v-if="node.totalMemOut">MEM out: {{ Intl.NumberFormat().format(node.totalMemOut) }}Tb</div>
+              </div>
+            </section>
 
             <section class="services">
               <header class="header">Сервисы</header>
-              <div v-for="(service, serviceIdx) in node.services" class="one-item">{{ service.name }}<img src="/res/icons/trashbox.svg" alt="delete" @click="deleteServiceFromNode(node, serviceIdx)"></div>
+              <div v-for="(service, serviceIdx) in node.services" class="one-item"><span>{{ service.name }}</span> <span class="cost">{{ service.cost * (String(service.type) === ServicesTypes.monitoring ? 1 : ((node.services.reduce((count, cur, idx) => count + ((String(cur.type) === ServicesTypes.monitoring || idx > serviceIdx) ? 0 : 1), 0)))) }} $</span><img src="/res/icons/trashbox.svg" alt="delete" @click="deleteServiceFromNode(node, serviceIdx)"></div>
               <button v-if="!node.addServiceInProcess" class="button-add" @click="node.addServiceInProcess = true"><img src="/res/icons/plus.svg" alt="plus">добавить сервис</button>
               <div v-if="node.addServiceInProcess">
-                <DropdownList :list="Object.values(ServicesTypes)" v-model="node.selectedServiceType" @input="(el) => node.selectedServiceType = el"></DropdownList>
-                <button class="button-save" @click="addServiceToNode(node, node.selectedServiceType); node.addServiceInProcess = false"><img src="/res/icons/save.svg" alt="plus">сохранить</button>
+                <DropdownList :list="ServicesConfigs" v-model="node.selectedServiceConfig" @input="(idx, el) => node.selectedServiceConfig = el"></DropdownList>
+                <button class="button-save" @click="addServiceToNode(node, node.selectedServiceConfig); node.addServiceInProcess = false"><img src="/res/icons/save.svg" alt="plus">сохранить</button>
                 <button class="button-cancel" @click="node.addServiceInProcess = false"><img src="/res/icons/cross.svg" alt="cross">отменить</button>
               </div>
             </section>
@@ -140,7 +216,7 @@
               <div v-for="(link, linkIdx) in node.linkedTo" class="one-item">{{ link }}<img src="/res/icons/trashbox.svg" alt="delete" @click="deleteLinkFromNode(node, linkIdx)"></div>
               <button v-if="!node.addLinkInProcess" class="button-add" @click="node.addLinkInProcess = true"><img src="/res/icons/plus.svg" alt="plus">добавить связь</button>
               <div v-if="node.addLinkInProcess">
-                <DropdownList :list="Object.values(nodes)" v-model="node.selectedLinkTarget" @input="(el) => node.selectedLinkTarget = el"></DropdownList>
+                <DropdownList :list="Object.values(nodes)" v-model="node.selectedLinkTarget" @input="(idx, el) => node.selectedLinkTarget = el"></DropdownList>
                 <button class="button-save" @click="addLinkToNode(node, node.selectedLinkTarget); node.addLinkInProcess = false"><img src="/res/icons/save.svg" alt="plus">сохранить</button>
                 <button class="button-cancel" @click="node.addLinkInProcess = false"><img src="/res/icons/cross.svg" alt="cross">отменить</button>
               </div>
@@ -156,7 +232,7 @@
 <script>
 import DraggableComponent from "~/components/DraggableComponent.vue";
 import DropdownList from "~/components/DropdownList.vue";
-import {ServicesTypes} from "~/utils/constants";
+import {defaultNodesConfig, ServicesConfigs, ServicesTypes} from "~/utils/constants";
 import {NodesModel} from "~/utils/apiModels";
 import validateModel from "@sergtyapkin/models-validator";
 
@@ -181,31 +257,36 @@ export default {
       MAP_WIDTH,
       MAP_HEIGHT,
       ServicesTypes,
+      ServicesConfigs,
     }
   },
 
   async mounted() {
-    await this.updateNodes();
+    await this.loadNodes();
+    this.updateNodes();
   },
 
   methods: {
-    async updateNodes() {
+    async loadNodes() {
       const loadedNodes = localStorage.getItem(LOCALSTORAGE_NODES_NAME);
-      let nodesData = null;
       if (loadedNodes) {
-        nodesData = JSON.parse(loadedNodes);
-      } else {
-        this.loading = true;
-        const {ok, status, data} = this.$api.getNodesConfig();
-        this.loading = false;
-
-        if (!ok) {
-          this.$popups.error(`Ошибка ${status}`, 'Не удалось получить данные узлов');
+        try {
+          const nodesData = JSON.parse(loadedNodes);
+          this.nodes = validateModel(NodesModel, nodesData).nodes;
           return;
+        } catch (err) {
+          this.$popups.error(`Ошибка ${err}`, 'Не удалось загрузить сохраненные данные сцены');
         }
-        nodesData = data;
       }
-      this.nodes = validateModel(NodesModel, nodesData).nodes;
+      this.loading = true;
+      let {ok, status, data} = this.$api.getNodesConfig();
+      this.loading = false;
+
+      if (!ok) {
+        this.$popups.error(`Ошибка ${status}`, 'Не удалось получить данные узлов');
+        data = defaultNodesConfig; // load default data;
+      }
+      this.nodes = validateModel(NodesModel, data).nodes;
     },
 
     getNode(id) {
@@ -217,32 +298,135 @@ export default {
         return
       }
       node.services.push(serviceType);
+      this.updateNodes();
     },
     deleteServiceFromNode(node, serviceIdx) {
       node.services.splice(serviceIdx, 1);
+      this.updateNodes();
+    },
+    getAllNodeLinks(node) {
+      // const allLinks = new Set(node.linkedTo.map(e => +e));
+      const allLinks = new Set();
+      this.nodes.forEach(otherNode => {
+        if (+otherNode.id === +node.id) {
+          return;
+        }
+        if (otherNode.linkedTo.map(e => +e).includes(+node.id)) {
+          allLinks.add(+otherNode.id);
+        }
+      });
+      return Array.from(allLinks);
     },
 
     addLinkToNode(node, linkTarget) {
       if (!linkTarget) {
         return
       }
-      if (node.linkedTo.includes(linkTarget.id) || (node.id === linkTarget.id)) {
+      // if (node.linkedTo.includes(linkTarget.id) || (node.id === linkTarget.id)) {
+      //   return;
+      // }
+      if (this.getAllNodeLinks(node).includes(+linkTarget.id) || (node.id === linkTarget.id)) {
         return;
       }
       node.linkedTo.push(linkTarget.id);
+      this.updateNodes();
     },
     deleteLinkFromNode(node, linkIdx) {
       node.linkedTo.splice(linkIdx, 1);
+      this.updateNodes();
+    },
+
+    updateNodes() {
+      localStorage.setItem(LOCALSTORAGE_NODES_NAME, JSON.stringify(validateModel(NodesModel, {nodes: this.nodes})));
+
+      // Calculate gen stats by nodes
+      this.nodes.forEach(node => {
+        let totalDpsGen = 0;
+        let totalRpsGen = 0;
+        let totalMemGen = 0;
+        node.services.forEach(service => {
+          switch (String(service.type)) {
+            case ServicesTypes.CDN:
+              totalDpsGen += service.dps;
+              totalRpsGen += service.rps;
+              break;
+            case ServicesTypes.backend:
+              totalDpsGen += service.dps;
+              break;
+            case ServicesTypes.database:
+              totalMemGen += service.mem;
+              break;
+            case ServicesTypes.monitoring:
+              totalMemGen += service.mem;
+              break;
+          }
+        });
+        node.totalDpsGen = totalDpsGen;
+        node.totalRpsGen = totalRpsGen;
+        node.totalMemGen = totalMemGen;
+        node.totalDpsOut = 0;
+        node.totalDpsIn = 0;
+        node.totalRpsOut = 0;
+        node.totalRpsIn = 0;
+        node.totalMemOut = 0;
+        node.totalMemIn = 0;
+      });
+
+      const iterateInOutCalcByAllNodes = () => {
+        // Calculate in stats on nodes
+        this.nodes.forEach(node => {
+          let totalDpsIn = 0;
+          let totalRpsIn = 0;
+          let totalMemIn = 0;
+          const allLinks = this.getAllNodeLinks(node);
+          this.nodes.forEach(otherNode => {
+            if (allLinks.includes(+otherNode.id)) {
+              totalDpsIn += otherNode.totalDpsGen + otherNode.totalDpsOut;
+              totalRpsIn += otherNode.totalRpsGen + otherNode.totalRpsOut;
+              totalMemIn += otherNode.totalMemGen + otherNode.totalMemOut;
+            }
+          });
+          let outDpsCoefficient = 1;
+          let outRpsCoefficient = 1;
+          let outMemCoefficient = 1;
+          let outDpsAdding = 0;
+          let outRpsAdding = 0;
+          let outMemAdding = 0;
+          // Calculate out stats on nodes
+          node.services.forEach(service => {
+            switch (String(service.type)) {
+              case ServicesTypes.backend:
+                outRpsAdding += service.rps;
+                break;
+              case ServicesTypes.database:
+                outDpsAdding += service.dps;
+                break;
+              case ServicesTypes.balancer:
+                outRpsCoefficient /= node.linkedTo.length;
+                outDpsCoefficient /= node.linkedTo.length;
+                outMemCoefficient /= node.linkedTo.length;
+                break;
+              case ServicesTypes.diskStorage:
+                outMemAdding += service.mem;
+                break;
+              case ServicesTypes.backWithFront:
+                outDpsAdding += service.dps;
+                break;
+            }
+          });
+          node.totalDpsIn = totalDpsIn;
+          node.totalRpsIn = totalRpsIn;
+          node.totalMemIn = totalMemIn;
+          node.totalDpsOut = (totalDpsIn + outDpsAdding) * outDpsCoefficient;
+          node.totalRpsOut = (totalRpsIn + outRpsAdding) * outRpsCoefficient;
+          node.totalMemOut = (totalMemIn + outMemAdding) * outMemCoefficient;
+        });
+      }
+
+      this.nodes.forEach(() => {
+        iterateInOutCalcByAllNodes();
+      });
     }
   },
-
-  watch: {
-    nodes: {
-      handler() {
-        localStorage.setItem(LOCALSTORAGE_NODES_NAME, JSON.stringify({nodes: this.nodes}));
-      },
-      deep: true,
-    }
-  }
 }
 </script>

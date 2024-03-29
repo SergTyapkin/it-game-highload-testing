@@ -1,0 +1,18 @@
+{
+  "short_name": "Нагрузочное Тестирование",
+  "name": "Игра \"Нагрузочное тестирование\" на выезд IT-Отдела",
+  "description": "",
+  "icons": [
+  ],
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
+  "background_color": "#0c0c0c",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#0c0c0c",
+  "prefer_related_applications": false,
+  "shortcuts": [
+  ],
+  "screenshots": [
+  ]
+}
