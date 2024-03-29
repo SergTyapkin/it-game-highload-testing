@@ -542,13 +542,10 @@ export default {
 
         minPercent = Math.min(minPercent, node.usersPercentOut);
       });
-      const globalPercent = 1 - Math.max(0,
-        (totalDpsLoss / totalDpsGen) | 0,
-        (totalRpsLoss / totalRpsGen) | 0,
-        (totalMemLoss / totalMemGen) | 0);
-      console.log(totalDpsLoss , totalDpsGen,
-      totalRpsLoss , totalRpsGen,
-        totalMemLoss , totalMemGen)
+      const dpsPercentLoss = (totalDpsLoss / totalDpsGen);
+      const rpsPercentLoss = (totalRpsLoss / totalRpsGen);
+      const memPercentLoss = (totalMemLoss / totalMemGen);
+      const globalPercent = (1 - (!isNaN(dpsPercentLoss) ? dpsPercentLoss : 0)) * (1 - (!isNaN(rpsPercentLoss) ? rpsPercentLoss : 0)) * (1 - (!isNaN(memPercentLoss) ? memPercentLoss : 0));
       this.totalPercentOut = globalPercent * minPercent;
       this.totalRequestsIn = totalRpsGen;
     }
