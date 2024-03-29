@@ -475,9 +475,9 @@ export default {
                 outDpsAdding += service.dps;
                 break;
               case ServicesTypes.balancer:
-                outRpsCoefficient /= node.linkedTo.length;
-                outDpsCoefficient /= node.linkedTo.length;
-                outMemCoefficient /= node.linkedTo.length;
+                outRpsCoefficient /= (node.linkedTo.length | 1);
+                outDpsCoefficient /= (node.linkedTo.length | 1);
+                outMemCoefficient /= (node.linkedTo.length | 1);
                 break;
               case ServicesTypes.diskStorage:
                 outMemAdding += service.mem;
