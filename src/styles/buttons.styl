@@ -19,9 +19,9 @@ shadow-color = mix(black, transparent, 70%)
 
 button()
     color text-color
-    font-medium()
+    font-small()
     font-bold()
-    padding 10px
+    padding 5px
     border colorBorder solid 1px
     border-radius 999999999px
     text-shadow none
@@ -31,6 +31,9 @@ button()
     background bg-color
     centered-margin()
     centered-flex-container()
+
+    img
+        width 30px
 
     &:hover
         color text-color-hover-1
@@ -45,7 +48,6 @@ button()
 
 button-no-fill()
     button()
-    padding 10px 20px
     min-height 40px
     background transparent
     border bg-color solid 2px
@@ -69,7 +71,6 @@ button-success()
     button()
     background mix(colorSuccess, transparent)
     border-color colorSuccess
-    color colorText3
     &:hover
         border-color mix(colorSuccess, white)
         color colorText1

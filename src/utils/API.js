@@ -1,6 +1,7 @@
 import REST_API from "@sergtyapkin/rest-api"
 import validateModel from "@sergtyapkin/models-validator";
 import * as Models from "~/models";
+import {nodesConfig} from "~/utils/constants";
 
 export default class MY_API extends REST_API {
     login = (email, password, clientBrowser, clientOS) => this.post('/api/user/auth', {_model: Models.User, email, password, clientBrowser, clientOS});
@@ -15,6 +16,8 @@ export default class MY_API extends REST_API {
     sendRestorePasswordLetter = (secretCode, newPassword) => this.post('/api/user/password/restore', {_model: Models.User, secretCode, newPassword});
     restorePassword = (secretCode, newPassword) => this.put('/api/user/password', {_model: Models.User, secretCode, newPassword});
     authCode = (secretCode, clientBrowser, clientOS) => this.post('/api/user/auth/code', {_model: Models.User, secretCode, clientBrowser, clientOS});
+
+    getNodesConfig = () => ({ok: true, status: 200, data: nodesConfig});
 
 
     async modelParsedRequest(requestFunc, path, data = {}) {

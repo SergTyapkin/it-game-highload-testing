@@ -1,16 +1,44 @@
-const UserModel = { // declare model
-  value: Number,
-  userName: [String, String],
-  sex: new Set(['male', 'female']),
-  children: {
-    type: Array,
+export const ServiceModel = {
+  id: Number,
+  name: String,
+  rps: {
+    type: Number,
     optional: true,
+  },
+  dps: {
+    type: Number,
+    optional: true,
+  },
+  cost: Number,
+}
+export const NodeModel = {
+  id: Number,
+  name: String,
+  services: {
+    type: Array,
     item: {
       type: Object,
-      fields: {
-        name: String,
-        age: Number,
-      }
+      fields: ServiceModel,
+    },
+  },
+  location: {
+    type: Object,
+    fields: {
+      x: Number,
+      y: Number,
     }
+  },
+  linkedTo: {
+    type: Array,
+    item: Number,
+  }
+}
+export const NodesModel = {
+  nodes: {
+    type: Array,
+    item: {
+      type: Object,
+      fields: NodeModel,
+    },
   }
 }
