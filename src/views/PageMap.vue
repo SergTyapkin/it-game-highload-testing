@@ -546,7 +546,8 @@ export default {
       const rpsPercentLoss = (totalRpsLoss / totalRpsGen);
       const memPercentLoss = (totalMemLoss / totalMemGen);
       const globalPercent = (1 - (!isNaN(dpsPercentLoss) ? dpsPercentLoss : 0)) * (1 - (!isNaN(rpsPercentLoss) ? rpsPercentLoss : 0)) * (1 - (!isNaN(memPercentLoss) ? memPercentLoss : 0));
-      this.totalPercentOut = globalPercent * minPercent;
+      // this.totalPercentOut = globalPercent * minPercent;
+      this.totalPercentOut = globalPercent;
       this.totalRequestsIn = totalRpsGen;
     }
   },
